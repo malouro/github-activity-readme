@@ -1,10 +1,16 @@
 const core = require("@actions/core");
 const fs = require("fs");
-const path = require("path");
 const { spawn } = require("child_process");
 const { Toolkit } = require("actions-toolkit");
 
 const MAX_LINES = 5;
+const URL_PREFIX = "https://github.com/";
+
+const EMOJI_OPEN_PR = process.env.EMOJI_OPEN_PR || '💪';
+const EMOJI_CLOSE_PR = process.env.EMOJI_CLOSE_PR || '❌';
+const EMOJI_MERGE_PR = process.env.EMOJI_MERGE_PR || '🎉';
+const EMOJI_OPEN_ISSUE = process.env.EMOJI_OPEN_ISSUE || '❗️';
+const EMOJI_COMMENT = process.env.EMOJI_COMMENT || '🗣';
 
 /**
  * Returns the sentence case representation
@@ -12,10 +18,7 @@ const MAX_LINES = 5;
  *
  * @returns {String}
  */
-
 const capitalize = (str) => str.slice(0, 1).toUpperCase() + str.slice(1);
-
-const urlPrefix = "https://github.com/";
 
 /**
  * Returns a URL in markdown format for PR's and issues
@@ -23,14 +26,13 @@ const urlPrefix = "https://github.com/";
  *
  * @returns {String}
  */
-
 const toUrlFormat = (item) => {
   if (typeof item === "object") {
     return Object.hasOwnProperty.call(item.payload, "issue")
-      ? `[#${item.payload.issue.number}](${urlPrefix}/${item.repo.name}/issues/${item.payload.issue.number})`
-      : `[#${item.payload.pull_request.number}](${urlPrefix}/${item.repo.name}/pull/${item.payload.pull_request.number})`;
+      ? `[#${item.payload.issue.number}](${URL_PREFIX}/${item.repo.name}/issues/${item.payload.issue.number})`
+      : `[#${item.payload.pull_request.number}](${URL_PREFIX}/${item.repo.name}/pull/${item.payload.pull_request.number})`;
   }
-  return `[${item}](${urlPrefix}/${item})`;
+  return `[${item}](${URL_PREFIX}/${item})`;
 };
 
 /**
@@ -40,13 +42,12 @@ const toUrlFormat = (item) => {
  *
  * @returns {Promise<void>}
  */
-
 const exec = (cmd, args = []) =>
   new Promise((resolve, reject) => {
     const app = spawn(cmd, args, { stdio: "inherit" });
     app.on("close", (code) => {
       if (code !== 0) {
-        err = new Error(`Invalid status code: ${code}`);
+        let err = new Error(`Invalid status code: ${code}`);
         err.code = code;
         return reject(err);
       }
@@ -60,7 +61,6 @@ const exec = (cmd, args = []) =>
  *
  * @returns {Promise<void>}
  */
-
 const commitFile = async () => {
   await exec("git", [
     "config",
@@ -80,19 +80,21 @@ const commitFile = async () => {
 
 const serializers = {
   IssueCommentEvent: (item) => {
-    return `🗣 Commented on ${toUrlFormat(item)} in ${toUrlFormat(
+    const emoji = EMOJI_COMMENT;
+    return `${emoji} Commented on ${toUrlFormat(item)} in ${toUrlFormat(
       item.repo.name
     )}`;
   },
   IssuesEvent: (item) => {
-    return `❗️ ${capitalize(item.payload.action)} issue ${toUrlFormat(
+    const emoji = EMOJI_OPEN_ISSUE;
+    return `${emoji} ${capitalize(item.payload.action)} issue ${toUrlFormat(
       item
     )} in ${toUrlFormat(item.repo.name)}`;
   },
   PullRequestEvent: (item) => {
-    const emoji = item.payload.action === "opened" ? "💪" : "❌";
+    const emoji = item.payload.action === "opened" ? EMOJI_OPEN_PR : EMOJI_CLOSE_PR;
     const line = item.payload.pull_request.merged
-      ? "🎉 Merged"
+      ? `${EMOJI_MERGE_PR}  Merged`
       : `${emoji} ${capitalize(item.payload.action)}`;
     return `${line} PR ${toUrlFormat(item)} in ${toUrlFormat(item.repo.name)}`;
   },
@@ -112,7 +114,7 @@ Toolkit.run(
       `Activity for ${GH_USERNAME}, ${events.data.length} events found.`
     );
 
-    const content = events.data
+    const activityContent = events.data
       // Filter out any boring activity
       .filter((event) => serializers.hasOwnProperty(event.type))
       // We only have five lines to work with
@@ -142,13 +144,13 @@ Toolkit.run(
     if (startIdx !== -1 && endIdx === -1) {
       // Add one since the content needs to be inserted just after the initial comment
       startIdx++;
-      content.forEach((line, idx) =>
+      activityContent.forEach((line, idx) =>
         readmeContent.splice(startIdx + idx, 0, `${idx + 1}. ${line}`)
       );
 
       // Append <!--END_SECTION:activity--> comment
       readmeContent.splice(
-        startIdx + content.length,
+        startIdx + activityContent.length,
         0,
         "<!--END_SECTION:activity-->"
       );
@@ -167,7 +169,7 @@ Toolkit.run(
     }
 
     const oldContent = readmeContent.slice(startIdx + 1, endIdx).join("\n");
-    const newContent = content
+    const newContent = activityContent
       .map((line, idx) => `${idx + 1}. ${line}`)
       .join("\n");
 
@@ -179,7 +181,7 @@ Toolkit.run(
     // Recent GitHub Activity content between the comments
     const readmeActivitySection = readmeContent.slice(startIdx, endIdx);
     if (!readmeActivitySection.length) {
-      content.forEach((line, idx) => {
+      activityContent.forEach((line, idx) => {
         readmeContent.splice(startIdx + idx, 0, `${idx + 1}. ${line}`);
       });
       tools.log.success("Wrote to README");
@@ -189,7 +191,7 @@ Toolkit.run(
 
       readmeActivitySection.forEach((line, idx) => {
         if (line !== "") {
-          readmeContent[startIdx + idx] = `${count + 1}. ${content[count]}`;
+          readmeContent[startIdx + idx] = `${count + 1}. ${activityContent[count]}`;
           count++;
         }
       });

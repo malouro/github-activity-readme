@@ -7,13 +7,16 @@
   "author": "James George",
   "license": "MIT",
   "scripts": {
-    "build": "ncc build index.js -o dist"
+    "start": "node ./index.js",
+    "build": "webpack ."
   },
   "dependencies": {
     "@actions/core": "^1.2.4",
     "actions-toolkit": "^5.0.0"
   },
   "devDependencies": {
-    "@zeit/ncc": "^0.22.3"
+    "babel-loader": "^8.1.0",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12"
   }
 }
