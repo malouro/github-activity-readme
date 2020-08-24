@@ -38,16 +38,20 @@ const toUrlFormat = (item) => {
 /**
  * Execute shell command
  * @param {String} cmd - root command
- * @param {String[]} args - args to be passed alongwith
+ * @param {String[]} args - args to be passed along with
  *
  * @returns {Promise<void>}
  */
 const exec = (cmd, args = []) =>
   new Promise((resolve, reject) => {
-    const app = spawn(cmd, args, { stdio: "inherit" });
+    const app = spawn(cmd, args, { stdio: "pipe" });
+    let stdout = "";
+    app.stdout.on("data", (data) => {
+      stdout = data;
+    });
     app.on("close", (code) => {
-      if (code !== 0) {
-        let err = new Error(`Invalid status code: ${code}`);
+      if (code !== 0 && !stdout.includes("nothing to commit")) {
+        err = new Error(`Invalid status code: ${code}`);
         err.code = code;
         return reject(err);
       }
@@ -124,7 +128,7 @@ Toolkit.run(
 
     const readmeContent = fs.readFileSync("./README.md", "utf-8").split("\n");
 
-    // Find the indec corresponding to <!--START_SECTION:activity--> comment
+    // Find the index corresponding to <!--START_SECTION:activity--> comment
     let startIdx = readmeContent.findIndex(
       (content) => content.trim() === "<!--START_SECTION:activity-->"
     );
@@ -140,6 +144,14 @@ Toolkit.run(
     const endIdx = readmeContent.findIndex(
       (content) => content.trim() === "<!--END_SECTION:activity-->"
     );
+
+    if (!content.length) {
+      tools.exit.failure("No events found");
+    }
+
+    if (content.length < 5) {
+      tools.log.info("Found less than 5 activities");
+    }
 
     if (startIdx !== -1 && endIdx === -1) {
       // Add one since the content needs to be inserted just after the initial comment
@@ -181,7 +193,11 @@ Toolkit.run(
     // Recent GitHub Activity content between the comments
     const readmeActivitySection = readmeContent.slice(startIdx, endIdx);
     if (!readmeActivitySection.length) {
-      activityContent.forEach((line, idx) => {
+      content.some((line, idx) => {
+        // User doesn't have 5 public events
+        if (!line) {
+          return true;
+        }
         readmeContent.splice(startIdx + idx, 0, `${idx + 1}. ${line}`);
       });
       tools.log.success("Wrote to README");
@@ -189,7 +205,11 @@ Toolkit.run(
       // It is likely that a newline is inserted after the <!--START_SECTION:activity--> comment (code formatter)
       let count = 0;
 
-      readmeActivitySection.forEach((line, idx) => {
+      readmeActivitySection.some((line, idx) => {
+        // User doesn't have 5 public events
+        if (!content[count]) {
+          return true;
+        }
         if (line !== "") {
           readmeContent[startIdx + idx] = `${count + 1}. ${activityContent[count]}`;
           count++;
