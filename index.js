@@ -6,11 +6,11 @@ const { Toolkit } = require("actions-toolkit");
 const MAX_LINES = 5;
 const URL_PREFIX = "https://github.com/";
 
-const EMOJI_OPEN_PR = process.env.EMOJI_OPEN_PR || '💪';
-const EMOJI_CLOSE_PR = process.env.EMOJI_CLOSE_PR || '❌';
-const EMOJI_MERGE_PR = process.env.EMOJI_MERGE_PR || '🎉';
-const EMOJI_OPEN_ISSUE = process.env.EMOJI_OPEN_ISSUE || '❗️';
-const EMOJI_COMMENT = process.env.EMOJI_COMMENT || '🗣';
+const EMOJI_OPEN_PR = process.env.EMOJI_OPEN_PR || "💪";
+const EMOJI_CLOSE_PR = process.env.EMOJI_CLOSE_PR || "❌";
+const EMOJI_MERGE_PR = process.env.EMOJI_MERGE_PR || "🎉";
+const EMOJI_OPEN_ISSUE = process.env.EMOJI_OPEN_ISSUE || "❗️";
+const EMOJI_COMMENT = process.env.EMOJI_COMMENT || "🗣";
 
 /**
  * Returns the sentence case representation
@@ -96,7 +96,8 @@ const serializers = {
     )} in ${toUrlFormat(item.repo.name)}`;
   },
   PullRequestEvent: (item) => {
-    const emoji = item.payload.action === "opened" ? EMOJI_OPEN_PR : EMOJI_CLOSE_PR;
+    const emoji =
+      item.payload.action === "opened" ? EMOJI_OPEN_PR : EMOJI_CLOSE_PR;
     const line = item.payload.pull_request.merged
       ? `${EMOJI_MERGE_PR}  Merged`
       : `${emoji} ${capitalize(item.payload.action)}`;
@@ -211,7 +212,9 @@ Toolkit.run(
           return true;
         }
         if (line !== "") {
-          readmeContent[startIdx + idx] = `${count + 1}. ${activityContent[count]}`;
+          readmeContent[startIdx + idx] = `${count + 1}. ${
+            activityContent[count]
+          }`;
           count++;
         }
       });
