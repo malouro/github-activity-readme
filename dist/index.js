@@ -1481,11 +1481,11 @@ const { Toolkit } = __webpack_require__(461);
 const MAX_LINES = 5;
 const URL_PREFIX = "https://github.com/";
 
-const EMOJI_OPEN_PR = process.env.EMOJI_OPEN_PR || '💪';
-const EMOJI_CLOSE_PR = process.env.EMOJI_CLOSE_PR || '❌';
-const EMOJI_MERGE_PR = process.env.EMOJI_MERGE_PR || '🎉';
-const EMOJI_OPEN_ISSUE = process.env.EMOJI_OPEN_ISSUE || '❗️';
-const EMOJI_COMMENT = process.env.EMOJI_COMMENT || '🗣';
+const EMOJI_OPEN_PR = process.env.EMOJI_OPEN_PR || "💪";
+const EMOJI_CLOSE_PR = process.env.EMOJI_CLOSE_PR || "❌";
+const EMOJI_MERGE_PR = process.env.EMOJI_MERGE_PR || "🎉";
+const EMOJI_OPEN_ISSUE = process.env.EMOJI_OPEN_ISSUE || "❗️";
+const EMOJI_COMMENT = process.env.EMOJI_COMMENT || "🗣";
 
 /**
  * Returns the sentence case representation
@@ -1571,7 +1571,8 @@ const serializers = {
     )} in ${toUrlFormat(item.repo.name)}`;
   },
   PullRequestEvent: (item) => {
-    const emoji = item.payload.action === "opened" ? EMOJI_OPEN_PR : EMOJI_CLOSE_PR;
+    const emoji =
+      item.payload.action === "opened" ? EMOJI_OPEN_PR : EMOJI_CLOSE_PR;
     const line = item.payload.pull_request.merged
       ? `${EMOJI_MERGE_PR}  Merged`
       : `${emoji} ${capitalize(item.payload.action)}`;
@@ -1593,7 +1594,7 @@ Toolkit.run(
       `Activity for ${GH_USERNAME}, ${events.data.length} events found.`
     );
 
-    const activityContent = events.data
+    const content = events.data
       // Filter out any boring activity
       .filter((event) => serializers.hasOwnProperty(event.type))
       // We only have five lines to work with
@@ -1631,13 +1632,13 @@ Toolkit.run(
     if (startIdx !== -1 && endIdx === -1) {
       // Add one since the content needs to be inserted just after the initial comment
       startIdx++;
-      activityContent.forEach((line, idx) =>
+      content.forEach((line, idx) =>
         readmeContent.splice(startIdx + idx, 0, `${idx + 1}. ${line}`)
       );
 
       // Append <!--END_SECTION:activity--> comment
       readmeContent.splice(
-        startIdx + activityContent.length,
+        startIdx + content.length,
         0,
         "<!--END_SECTION:activity-->"
       );
@@ -1656,7 +1657,7 @@ Toolkit.run(
     }
 
     const oldContent = readmeContent.slice(startIdx + 1, endIdx).join("\n");
-    const newContent = activityContent
+    const newContent = content
       .map((line, idx) => `${idx + 1}. ${line}`)
       .join("\n");
 
@@ -1686,7 +1687,9 @@ Toolkit.run(
           return true;
         }
         if (line !== "") {
-          readmeContent[startIdx + idx] = `${count + 1}. ${activityContent[count]}`;
+          readmeContent[startIdx + idx] = `${count + 1}. ${
+            content[count]
+          }`;
           count++;
         }
       });
